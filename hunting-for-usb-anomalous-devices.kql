@@ -1,0 +1,20 @@
+let USB_ID = externaldata(Vendor_ID:string, Vendor_Name: string, Product_ID: string, Product_Name:string)
+[
+    "https://raw.githubusercontent.com/jkb-s/th/refs/heads/main/usb.csv"
+]
+with (format="csv", ignoreFirstRecord=true);
+DeviceEvents
+| where TimeGenerated > ago(1d)
+| where ActionType == "PnpDeviceConnected"
+| extend AdditionalFields = todynamic(AdditionalFields)
+| extend USBDeviceId = AdditionalFields.DeviceId, USBDeviceClassName = AdditionalFields.ClassName, USBDeviceDescription = AdditionalFields.DeviceDescription
+| extend DevArray = split(USBDeviceId, "\\")
+| extend BUS_TYPE = DevArray[0], VENDOR_PRODUCT = DevArray[1], INSTANCE = DevArray[2]
+| extend VP_ARRAY = split(VENDOR_PRODUCT, "&")
+| extend VENDOR = VP_ARRAY[0], PRODUCT = VP_ARRAY[1], INTERFACE_ID = VP_ARRAY[2], COLLECTION = VP_ARRAY[3]
+| where VENDOR startswith "VID_" and PRODUCT startswith "PID_"
+| extend Vendor_ID = tolower(tostring(split(VENDOR, "_")[1]))
+| extend Product_ID = tolower(tostring(split(PRODUCT, "_")[1]))
+| project Vendor_ID, Product_ID, AdditionalFields, DeviceId, DeviceName
+| join kind=inner (USB_ID) on Vendor_ID, Product_ID
+| summarize dcount(DeviceId) by Vendor_Name, Product_Name
