@@ -11,5 +11,5 @@ DeviceEvents
 | extend Match = " "
 | join kind=inner CountDevice 
     on Match
-| extend Percent = toint((DevicesWithActionCount / DeviceCount)*100)
+| extend Percent = round((DevicesWithActionCount / DeviceCount) * 100, 3)
 | project ActionType, Percent
